@@ -19,6 +19,7 @@ This repository contains an interactive flashcard template for Anki, featuring d
 4. Copy the content from `front.html` into the front template.
 5. Copy the content from `back.html` (if used) into the back template.
 6. Copy the content from `style.css` into the Styling section.
+7. When creating cards, use the | character to separate multiple correct answers within the same field.
 
 ## License
 [MIT License.]
