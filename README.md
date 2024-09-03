@@ -2,6 +2,10 @@
 
 This repository contains an interactive flashcard template for Anki, featuring drag-and-drop functionality and visual feedback.
 
+![image](https://github.com/user-attachments/assets/e220cf30-e9e1-40a4-b8c3-557a27999f5c)
+
+![image](https://github.com/user-attachments/assets/d458ad52-5f54-4a5c-aade-818c0a2e25b9)
+
 ## Files
 - `front.html`: The HTML code for the front side of the flashcard.
 - `back.html`: The HTML code for the back side of the flashcard (optional).
