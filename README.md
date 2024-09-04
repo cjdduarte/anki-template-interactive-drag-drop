@@ -21,5 +21,18 @@ This repository contains an interactive flashcard template for Anki, featuring d
 6. Copy the content from `style.css` into the Styling section.
 7. When creating cards, use the | character to separate multiple correct answers within the same field.
 
+<b> #### Change Log:</b>
+
+v1.1 - 2024-09-04
+- Added trim to terms comparison to remove spaces around '|' separators.
+- Evaluated forgotten terms as incorrect with -1 feedback.
+- Dynamic headers and terms handling for up to 5 columns.
+- Added support for dynamic vertical and horizontal table generation based on layout.
+- Fixed comparison logic for terms with multiple answers using '|' to trim extra spaces.
+- Added visual feedback for both correct (+1) and incorrect (-1) answers, including forgotten terms.
+
+v1.0 - 2024-09-04
+- Initial release
+
 ## License
 [MIT License.]
