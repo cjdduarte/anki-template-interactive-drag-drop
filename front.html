@@ -1,57 +1,22 @@
 <p id="header1-field" style="display:none;">{{Header1}}</p>
 <p id="header2-field" style="display:none;">{{Header2}}</p>
 <p id="header3-field" style="display:none;">{{Header3}}</p>
+<p id="header4-field" style="display:none;">{{Header4}}</p>
+<p id="header5-field" style="display:none;">{{Header5}}</p>
 
 <p id="terms1-field" style="display:none;">{{Terms1}}</p>
 <p id="terms2-field" style="display:none;">{{Terms2}}</p>
 <p id="terms3-field" style="display:none;">{{Terms3}}</p>
+<p id="terms4-field" style="display:none;">{{Terms4}}</p>
+<p id="terms5-field" style="display:none;">{{Terms5}}</p>
 
 <p id="layout-field" style="display:none;">{{Layout}}</p>
 
 <div class="game-container">
     <h1>{{Title}}</h1>
 
-    <!-- Tabela com Cabeçalhos como Colunas (Horizontal) -->
-    <table id="term-table-horizontal">
-        <thead>
-            <tr>
-                <th id="header1"></th>
-                <th id="header2"></th>
-                <th id="header3"></th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td id="col1" class="dropzone"></td>
-                <td id="col2" class="dropzone"></td>
-                <td id="col3" class="dropzone"></td>
-            </tr>
-        </tbody>
-    </table>
-
-    <!-- Tabela com Cabeçalhos como Linhas (Vertical) -->
-    <table id="term-table-vertical" style="display:none;">
-        <thead>
-            <tr>
-                <th></th>
-                <th>Terms</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <th id="header1-vert"></th>
-                <td id="col1-vert" class="dropzone"></td>
-            </tr>
-            <tr>
-                <th id="header2-vert"></th>
-                <td id="col2-vert" class="dropzone"></td>
-            </tr>
-            <tr>
-                <th id="header3-vert"></th>
-                <td id="col3-vert" class="dropzone"></td>
-            </tr>
-        </tbody>
-    </table>
+    <!-- Tabelas serão criadas dinamicamente via JavaScript -->
+    <div id="dynamic-table"></div>
 
     <div id="terms-container"></div>
     <div id="checkButton" class="button-like">Check Answers</div>
@@ -62,43 +27,40 @@
     function run() {
         const layout = document.getElementById("layout-field").innerText.trim().toUpperCase();
 
-        const header1 = document.getElementById("header1-field").innerText;
-        const header2 = document.getElementById("header2-field").innerText;
-        const header3 = document.getElementById("header3-field").innerText;
+        const headers = [
+            document.getElementById("header1-field").innerText,
+            document.getElementById("header2-field").innerText,
+            document.getElementById("header3-field").innerText,
+            document.getElementById("header4-field").innerText,
+            document.getElementById("header5-field").innerText
+        ];
 
-        const terms1 = document.getElementById("terms1-field").innerText.split("|");
-        const terms2 = document.getElementById("terms2-field").innerText.split("|");
-        const terms3 = document.getElementById("terms3-field").innerText.split("|");
+        const terms = [
+            document.getElementById("terms1-field").innerText.split("|"),
+            document.getElementById("terms2-field").innerText.split("|"),
+            document.getElementById("terms3-field").innerText.split("|"),
+            document.getElementById("terms4-field").innerText.split("|"),
+            document.getElementById("terms5-field").innerText.split("|")
+        ];
 
-        let allTerms = [...terms1, ...terms2, ...terms3];
+        // Filtrar cabeçalhos e termos que estão em branco
+        const validHeaders = headers.filter((header, index) => header.trim() !== "" && terms[index].length > 0);
+        const validTerms = terms.filter((termList, index) => headers[index].trim() !== "" && termList.length > 0);
 
-        if (layout === "V") {
-            // Configuração para o layout vertical
-            document.getElementById("term-table-horizontal").style.display = 'none';
-            document.getElementById("term-table-vertical").style.display = 'table';
+        let allTerms = validTerms.flat(); // Todos os termos para embaralhar
 
-            document.getElementById("header1-vert").innerText = header1;
-            document.getElementById("header2-vert").innerText = header2;
-            document.getElementById("header3-vert").innerText = header3;
-        } else {
-            // Configuração para o layout horizontal (padrão)
-            document.getElementById("term-table-horizontal").style.display = 'table';
-            document.getElementById("term-table-vertical").style.display = 'none';
-
-            document.getElementById("header1").innerText = header1;
-            document.getElementById("header2").innerText = header2;
-            document.getElementById("header3").innerText = header3;
-        }
+        // Criar dinamicamente a tabela com base no layout e cabeçalhos válidos
+        const dynamicTable = document.getElementById("dynamic-table");
+        dynamicTable.innerHTML = generateTable(layout, validHeaders);
 
         const termsContainer = document.getElementById("terms-container");
 
         function initializeGame() {
             clearTable();
-            allTerms = [...terms1, ...terms2, ...terms3].sort(() => Math.random() - 0.5);
+            allTerms = allTerms.sort(() => Math.random() - 0.5);
             termsContainer.innerHTML = allTerms.map(term => `<div class="term draggable" draggable="true">${term}</div>`).join('');
 
             const draggableItems = document.querySelectorAll('.draggable');
-
             draggableItems.forEach(item => {
                 item.addEventListener('dragstart', dragStart);
                 item.addEventListener('dragend', dragEnd);
@@ -176,27 +138,19 @@
         function checkAnswers() {
             const dropzones = document.querySelectorAll('.dropzone');
 
+            // Verificar os termos nas caixas (dropzones)
             dropzones.forEach((zone, index) => {
                 const termsInZone = Array.from(zone.getElementsByClassName('term'));
-                let expectedTerms = [];
-
-                if (layout === "V") {
-                    if (zone.id === "col1-vert") expectedTerms = terms1;
-                    if (zone.id === "col2-vert") expectedTerms = terms2;
-                    if (zone.id === "col3-vert") expectedTerms = terms3;
-                } else {
-                    if (zone.id === "col1") expectedTerms = terms1;
-                    if (zone.id === "col2") expectedTerms = terms2;
-                    if (zone.id === "col3") expectedTerms = terms3;
-                }
+                const expectedTerms = validTerms[index]; // Usa apenas termos válidos
 
                 termsInZone.forEach(termElement => {
-                    const term = termElement.innerText.trim();
+                    const term = termElement.innerText.trim(); // Remover espaços desnecessários ao redor do termo
                     let isCorrect = false;
 
                     // Verifica se o termo completo é igual ou se é parte dos termos separados por |
                     expectedTerms.forEach(expectedTerm => {
-                        const possibleAnswers = expectedTerm.split('|').map(t => t.trim());
+                        // Suprimir espaços ao redor de cada termo, mas manter os espaços internos
+                        const possibleAnswers = expectedTerm.split('|').map(t => t.trim()); // Usa trim() para cada termo
                         if (possibleAnswers.includes(term)) {
                             isCorrect = true;
                         }
@@ -219,10 +173,46 @@
                 });
             });
 
+            // Verificar os termos que não foram associados a nenhuma caixa (esquecidos)
+            const remainingTerms = document.querySelectorAll('#terms-container .term');
+            remainingTerms.forEach(termElement => {
+                // Marcar como incorretos (foram esquecidos)
+                termElement.classList.add('incorrect');
+                termElement.classList.remove('correct');
+                // Remove ícones anteriores
+                termElement.querySelectorAll('.question-plus-one, .question-minus-one').forEach(icon => icon.remove());
+                // Adicionar ícone de -1
+                termElement.insertAdjacentHTML('beforeend', '<div class="question-minus-one"></div>');
+            });
+
             document.getElementById("resetButton").style.display = 'block';
         }
 
         initializeGame();
+    }
+
+    function generateTable(layout, headers) {
+        let tableHTML = '';
+        if (layout === 'V') {
+            // Layout vertical
+            tableHTML = `<table><thead><tr><th></th><th>Terms</th></tr></thead><tbody>`;
+            headers.forEach((header, index) => {
+                tableHTML += `<tr><th>${header}</th><td id="col${index + 1}-vert" class="dropzone"></td></tr>`;
+            });
+            tableHTML += `</tbody></table>`;
+        } else {
+            // Layout horizontal
+            tableHTML = `<table><thead><tr>`;
+            headers.forEach((header, index) => {
+                tableHTML += `<th id="header${index + 1}">${header}</th>`;
+            });
+            tableHTML += `</tr></thead><tbody><tr>`;
+            headers.forEach((header, index) => {
+                tableHTML += `<td id="col${index + 1}" class="dropzone"></td>`;
+            });
+            tableHTML += `</tr></tbody></table>`;
+        }
+        return tableHTML;
     }
 
     run();
