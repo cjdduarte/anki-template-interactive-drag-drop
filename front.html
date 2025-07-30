@@ -19,7 +19,7 @@
 <div class="game-container">
     <h1>{{Title}}</h1>
 
-    <!-- Tables will be created dynamically via JavaScript -->
+    <!-- Tabelas serão criadas dinamicamente via JavaScript -->
     <div id="dynamic-table"></div>
 
     <div id="terms-container"></div>
@@ -28,101 +28,7 @@
 </div>
 
 <script>
-// anki-persistence library
-if (typeof(window.Persistence) === 'undefined') {
-    var _persistenceKey = 'github.com/SimonLammer/anki-persistence/';
-    var _defaultKey = '_default';
-    window.Persistence_sessionStorage = function() {
-        var isAvailable = false;
-        try {
-            if (typeof(window.sessionStorage) === 'object') {
-                isAvailable = true;
-                this.clear = function() {
-                    for (var i = 0; i < sessionStorage.length; i++) {
-                        var k = sessionStorage.key(i);
-                        if (k.indexOf(_persistenceKey) == 0) {
-                            sessionStorage.removeItem(k);
-                            i--;
-                        }
-                    }
-                };
-                this.setItem = function(key, value) {
-                    if (value == undefined) {
-                        value = key;
-                        key = _defaultKey;
-                    }
-                    sessionStorage.setItem(_persistenceKey + key, JSON.stringify(value));
-                };
-                this.getItem = function(key) {
-                    if (key == undefined) {
-                        key = _defaultKey;
-                    }
-                    return JSON.parse(sessionStorage.getItem(_persistenceKey + key));
-                };
-                this.removeItem = function(key) {
-                    if (key == undefined) {
-                        key = _defaultKey;
-                    }
-                    sessionStorage.removeItem(_persistenceKey + key);
-                };
-            }
-        } catch(err) {}
-        this.isAvailable = function() {
-            return isAvailable;
-        };
-    };
-    window.Persistence_windowKey = function(key) {
-        var isAvailable = false;
-        try {
-            if (typeof(window[key]) === 'object') {
-                isAvailable = true;
-                this.clear = function() {
-                    window[key] = {};
-                };
-                this.setItem = function(key, value) {
-                    if (value == undefined) {
-                        value = key;
-                        key = _defaultKey;
-                    }
-                    window[key][_persistenceKey + key] = value;
-                };
-                this.getItem = function(key) {
-                    if (key == undefined) {
-                        key = _defaultKey;
-                    }
-                    return window[key][_persistenceKey + key];
-                };
-                this.removeItem = function(key) {
-                    if (key == undefined) {
-                        key = _defaultKey;
-                    }
-                    delete window[key][_persistenceKey + key];
-                };
-            }
-        } catch(err) {}
-        this.isAvailable = function() {
-            return isAvailable;
-        };
-    };
-    window.Persistence = new Persistence_sessionStorage();
-    if (!window.Persistence.isAvailable()) {
-        window.Persistence = new Persistence_windowKey(window.location.href);
-        if (!window.Persistence.isAvailable()) {
-            window.Persistence = new Persistence_windowKey('anki-persistence');
-        }
-    }
-}
-
     function run() {
-        // Always clear state at the beginning of front side to prevent persistence issues
-        if (window.Persistence && window.Persistence.isAvailable()) {
-            // Only clear if this is truly a fresh front side load (not back side)
-            const isBackSide = window.Persistence.getItem('showSolution');
-            if (!isBackSide) {
-                window.Persistence.clear();
-            }
-        }
-        
         const layout = document.getElementById("layout-field").innerText.trim().toUpperCase();
 
         const headers = [
@@ -145,13 +51,13 @@ if (typeof(window.Persistence) === 'undefined') {
             document.getElementById("terms7-field").innerText.split("|")
         ];
 
-        // Filter headers and terms that are blank
+        // Filtrar cabeçalhos e termos que estão em branco
         const validHeaders = headers.filter((header, index) => header.trim() !== "" && terms[index].length > 0);
         const validTerms = terms.filter((termList, index) => headers[index].trim() !== "" && termList.length > 0);
 
-        let allTerms = validTerms.flat(); // All terms to shuffle
+        let allTerms = validTerms.flat(); // Todos os termos para embaralhar
 
-        // Create table dynamically based on layout and valid headers
+        // Criar dinamicamente a tabela com base no layout e cabeçalhos válidos
         const dynamicTable = document.getElementById("dynamic-table");
         dynamicTable.innerHTML = generateTable(layout, validHeaders);
 
@@ -160,19 +66,29 @@ if (typeof(window.Persistence) === 'undefined') {
         function initializeGame(layoutParam, validTermsParam, allTermsParam, termsContainerParam) {
             clearTable();
             
-            // Check if we should show solution (back side)
-            const isBackSide = window.Persistence && window.Persistence.isAvailable() && window.Persistence.getItem('showSolution');
-            
-            if (isBackSide) {
+            // Check if we should show solution (only exists on back side)
+            if (window.ankiShowSolution === true) {
                 // Solution mode - display correct answers
-                showSolution(layoutParam, validTermsParam);
+                validTermsParam.forEach((categoryTerms, index) => {
+                    const dropzoneId = layoutParam === 'V' ? `col${index + 1}-vert` : `col${index + 1}`;
+                    const dropzone = document.getElementById(dropzoneId);
+                    
+                    if (dropzone) {
+                        categoryTerms.forEach(termString => {
+                            const terms = termString.split('|').map(t => t.trim());
+                            terms.forEach(term => {
+                                if (term) {
+                                    dropzone.innerHTML += `<div class="term correct">${term}<div class="question-plus-one"></div></div>`;
+                                }
+                            });
+                        });
+                    }
+                });
                 
                 // Hide interactive elements
                 if (termsContainerParam) termsContainerParam.style.display = 'none';
                 const checkButton = document.getElementById("checkButton");
                 if (checkButton) checkButton.style.display = 'none';
-                const resetButton = document.getElementById("resetButton");
-                if (resetButton) resetButton.style.display = 'none';
                 return;
             }
             
@@ -192,37 +108,18 @@ if (typeof(window.Persistence) === 'undefined') {
                 zone.addEventListener('drop', drop);
             });
 
-            // Add drag-drop capability to terms container
-            const termsContainer = document.getElementById("terms-container");
-            termsContainer.addEventListener('dragover', dragOver);
-            termsContainer.addEventListener('drop', drop);
+            // Add drag/drop events to terms container for reordering
+            termsContainerParam.addEventListener('dragover', dragOver);
+            termsContainerParam.addEventListener('drop', drop);
 
             document.getElementById("resetButton").style.display = 'none';
-        }
-        
-        function showSolution(layoutParam, validTermsParam) {
-            validTermsParam.forEach((categoryTerms, index) => {
-                const dropzoneId = layoutParam === 'V' ? `col${index + 1}-vert` : `col${index + 1}`;
-                const dropzone = document.getElementById(dropzoneId);
-                
-                if (dropzone) {
-                    categoryTerms.forEach(termString => {
-                        const terms = termString.split('|').map(t => t.trim());
-                        terms.forEach(term => {
-                            if (term) {
-                                dropzone.innerHTML += `<div class="term correct">${term}<div class="question-plus-one"></div></div>`;
-                            }
-                        });
-                    });
-                }
-            });
         }
 
         function clearTable() {
             const dropzones = document.querySelectorAll('.dropzone');
             dropzones.forEach(zone => {
-                zone.innerHTML = ''; // Clear all terms inside the drop zones
-                zone.classList.remove('correct', 'incorrect'); // Remove the style classes
+                zone.innerHTML = ''; // Limpa todos os termos dentro das zonas de drop
+                zone.classList.remove('correct', 'incorrect'); // Remove as classes de estilo
             });
         }
 
@@ -234,18 +131,56 @@ if (typeof(window.Persistence) === 'undefined') {
         function dragEnd(e) {
             setTimeout(() => {
                 e.target.classList.remove('hide');
-                // Remove visual feedback from terms container
-                const termsContainer = document.getElementById("terms-container");
-                termsContainer.classList.remove('dragover');
+                // Clear all drop indicators
+                document.querySelectorAll('.drop-indicator').forEach(indicator => indicator.remove());
             }, 0);
         }
 
         function dragOver(e) {
             e.preventDefault();
-            // Add visual feedback for terms container
-            if (e.target.id === 'terms-container' || e.target.closest('#terms-container')) {
-                const termsContainer = document.getElementById("terms-container");
-                termsContainer.classList.add('dragover');
+            
+            // Clear existing indicators
+            document.querySelectorAll('.drop-indicator').forEach(indicator => indicator.remove());
+            
+            const targetZone = e.target;
+            
+            if (targetZone.classList.contains('term')) {
+                // Show insertion indicator for terms
+                const rect = targetZone.getBoundingClientRect();
+                const midpoint = rect.left + rect.width / 2;
+                const indicator = document.createElement('div');
+                indicator.className = 'drop-indicator';
+                
+                if (e.clientX < midpoint) {
+                    indicator.classList.add('top');
+                } else {
+                    indicator.classList.add('bottom');
+                }
+                
+                targetZone.style.position = 'relative';
+                targetZone.appendChild(indicator);
+            } else if (targetZone.id === 'terms-container') {
+                // Show insertion indicator for container
+                const firstTerm = targetZone.querySelector('.term');
+                const indicator = document.createElement('div');
+                indicator.className = 'drop-indicator';
+                
+                if (firstTerm) {
+                    const firstTermRect = firstTerm.getBoundingClientRect();
+                    if (e.clientY < firstTermRect.top) {
+                        indicator.classList.add('container-top');
+                        targetZone.style.position = 'relative';
+                        targetZone.appendChild(indicator);
+                    } else {
+                        indicator.classList.add('container-bottom');
+                        targetZone.style.position = 'relative';
+                        targetZone.appendChild(indicator);
+                    }
+                } else {
+                    indicator.classList.add('container-top');
+                    targetZone.style.position = 'relative';
+                    targetZone.appendChild(indicator);
+                }
             }
         }
 
@@ -254,28 +189,47 @@ if (typeof(window.Persistence) === 'undefined') {
             const term = e.dataTransfer.getData('text/plain');
             const targetZone = e.target;
 
-            if (targetZone.classList.contains('dropzone') || targetZone.classList.contains('term')) {
+            if (targetZone.classList.contains('dropzone') || targetZone.classList.contains('term') || targetZone.id === 'terms-container') {
                 if (targetZone.classList.contains('term')) {
-                    targetZone.parentElement.innerHTML += `<div class="term draggable" draggable="true">${term}</div>`;
+                    // Handle insertion before/after existing term
+                    const rect = targetZone.getBoundingClientRect();
+                    const midpoint = rect.left + rect.width / 2;
+                    const newTerm = `<div class="term draggable" draggable="true">${term}</div>`;
+                    
+                    if (e.clientX < midpoint) {
+                        // Insert before the target term
+                        targetZone.insertAdjacentHTML('beforebegin', newTerm);
+                    } else {
+                        // Insert after the target term
+                        targetZone.insertAdjacentHTML('afterend', newTerm);
+                    }
+                } else if (targetZone.id === 'terms-container') {
+                    // Drop into terms container - check if dropping at beginning or end
+                    const containerRect = targetZone.getBoundingClientRect();
+                    const firstTerm = targetZone.querySelector('.term');
+                    const newTerm = `<div class="term draggable" draggable="true">${term}</div>`;
+                    
+                    if (firstTerm) {
+                        const firstTermRect = firstTerm.getBoundingClientRect();
+                        // If dropping before the first term, prepend
+                        if (e.clientY < firstTermRect.top) {
+                            targetZone.insertAdjacentHTML('afterbegin', newTerm);
+                        } else {
+                            // Otherwise append at end
+                            targetZone.innerHTML += newTerm;
+                        }
+                    } else {
+                        // Empty container, just add the term
+                        targetZone.innerHTML += newTerm;
+                    }
                 } else {
+                    // Drop into dropzone (append at end)
                     targetZone.innerHTML += `<div class="term draggable" draggable="true">${term}</div>`;
                 }
 
                 const draggedItem = document.querySelector(`.draggable.hide`);
                 if (draggedItem) draggedItem.remove();
 
-                reattachDragEvents();
-            } else if (targetZone.id === 'terms-container' || targetZone.closest('#terms-container')) {
-                // Handle drop back to terms container
-                const termsContainer = document.getElementById("terms-container");
-                termsContainer.innerHTML += `<div class="term draggable" draggable="true">${term}</div>`;
-                
-                const draggedItem = document.querySelector(`.draggable.hide`);
-                if (draggedItem) draggedItem.remove();
-                
-                // Remove visual feedback
-                termsContainer.classList.remove('dragover');
-                
                 reattachDragEvents();
             } else {
                 const draggedItem = document.querySelector(`.draggable.hide`);
@@ -301,36 +255,36 @@ if (typeof(window.Persistence) === 'undefined') {
         function checkAnswers() {
             const dropzones = document.querySelectorAll('.dropzone');
 
-            // Check the terms in the boxes (dropzones)
+            // Verificar os termos nas caixas (dropzones)
             dropzones.forEach((zone, index) => {
                 const termsInZone = Array.from(zone.getElementsByClassName('term'));
-                const expectedTerms = validTerms[index]; // Use only valid terms
+                const expectedTerms = validTerms[index]; // Usa apenas termos válidos
 
                 termsInZone.forEach(termElement => {
-                    const term = termElement.innerText.trim(); // Remove unnecessary spaces around the term
+                    const term = termElement.innerText.trim(); // Remover espaços desnecessários ao redor do termo
                     let isCorrect = false;
 
-                    // Check if the complete term is equal or if it's part of terms separated by |
+                    // Verifica se o termo completo é igual ou se é parte dos termos separados por |
                     expectedTerms.forEach(expectedTerm => {
-                        // Remove spaces around each term, but keep internal spaces
-                        const possibleAnswers = expectedTerm.split('|').map(t => t.trim()); // Use trim() for each term
+                        // Suprimir espaços ao redor de cada termo, mas manter os espaços internos
+                        const possibleAnswers = expectedTerm.split('|').map(t => t.trim()); // Usa trim() para cada termo
                         if (possibleAnswers.includes(term)) {
                             isCorrect = true;
                         }
                     });
 
-                    // Remove previous icons
+                    // Remove ícones anteriores
                     termElement.querySelectorAll('.question-plus-one, .question-minus-one, .correct-answer-hint').forEach(icon => icon.remove());
 
                     if (isCorrect) {
                         termElement.classList.add('correct');
                         termElement.classList.remove('incorrect');
-                        // Add +1 icon
+                        // Adiciona ícone de +1
                         termElement.insertAdjacentHTML('beforeend', '<div class="question-plus-one"></div>');
                     } else {
                         termElement.classList.add('incorrect');
                         termElement.classList.remove('correct');
-                        // Add -1 icon
+                        // Adiciona ícone de -1
                         termElement.insertAdjacentHTML('beforeend', '<div class="question-minus-one"></div>');
                         // Find and show correct category
                         const correctCategory = findCorrectCategory(term, validTerms, validHeaders);
@@ -341,15 +295,15 @@ if (typeof(window.Persistence) === 'undefined') {
                 });
             });
 
-            // Check terms that were not associated with any box (forgotten)
+            // Verificar os termos que não foram associados a nenhuma caixa (esquecidos)
             const remainingTerms = document.querySelectorAll('#terms-container .term');
             remainingTerms.forEach(termElement => {
-                // Mark as incorrect (were forgotten)
+                // Marcar como incorretos (foram esquecidos)
                 termElement.classList.add('incorrect');
                 termElement.classList.remove('correct');
-                // Remove previous icons
+                // Remove ícones anteriores
                 termElement.querySelectorAll('.question-plus-one, .question-minus-one, .correct-answer-hint').forEach(icon => icon.remove());
-                // Add -1 icon
+                // Adicionar ícone de -1
                 termElement.insertAdjacentHTML('beforeend', '<div class="question-minus-one"></div>');
                 // Find and show correct category for forgotten terms
                 const term = termElement.innerText.trim();
@@ -366,6 +320,10 @@ if (typeof(window.Persistence) === 'undefined') {
     }
 
     function findCorrectCategory(term, validTerms, validHeaders) {
+        // Debug: log what we're searching for
+        console.log('Looking for term:', term);
+        console.log('Valid terms structure:', validTerms);
+        console.log('Valid headers:', validHeaders);
         
         for (let i = 0; i < validTerms.length; i++) {
             const categoryTerms = validTerms[i];
@@ -374,26 +332,29 @@ if (typeof(window.Persistence) === 'undefined') {
                 const currentTerm = categoryTerms[j];
                 // Handle multiple answers separated by |
                 const possibleAnswers = currentTerm.split('|').map(t => t.trim());
+                console.log(`Checking category ${validHeaders[i]}, term ${currentTerm}, possible answers:`, possibleAnswers);
                 
                 if (possibleAnswers.includes(term.trim())) {
+                    console.log('Found match in category:', validHeaders[i]);
                     return validHeaders[i];
                 }
             }
         }
+        console.log('No match found for term:', term);
         return null;
     }
 
     function generateTable(layout, headers) {
         let tableHTML = '';
         if (layout === 'V') {
-            // Vertical layout
+            // Layout vertical
             tableHTML = `<table><thead><tr><th></th><th>Terms</th></tr></thead><tbody>`;
             headers.forEach((header, index) => {
                 tableHTML += `<tr><th>${header}</th><td id="col${index + 1}-vert" class="dropzone"></td></tr>`;
             });
             tableHTML += `</tbody></table>`;
         } else {
-            // Horizontal layout
+            // Layout horizontal
             tableHTML = `<table><thead><tr>`;
             headers.forEach((header, index) => {
                 tableHTML += `<th id="header${index + 1}">${header}</th>`;

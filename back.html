@@ -88,9 +88,98 @@ if (typeof(window.Persistence) === 'undefined') {
 if (window.Persistence && window.Persistence.isAvailable()) {
     window.Persistence.setItem('showSolution', true);
 }
+
+// Function to generate table structure (copied from front.html)
+function generateTable(layout, headers) {
+    let tableHTML = '';
+    if (layout === 'V') {
+        // Layout vertical
+        tableHTML = `<table><thead><tr><th></th><th>Terms</th></tr></thead><tbody>`;
+        headers.forEach((header, index) => {
+            tableHTML += `<tr><th>${header}</th><td id="col${index + 1}-vert" class="dropzone"></td></tr>`;
+        });
+        tableHTML += `</tbody></table>`;
+    } else {
+        // Layout horizontal
+        tableHTML = `<table><thead><tr>`;
+        headers.forEach((header, index) => {
+            tableHTML += `<th id="header${index + 1}">${header}</th>`;
+        });
+        tableHTML += `</tr></thead><tbody><tr>`;
+        headers.forEach((header, index) => {
+            tableHTML += `<td id="col${index + 1}" class="dropzone"></td>`;
+        });
+        tableHTML += `</tr></tbody></table>`;
+    }
+    return tableHTML;
+}
+
+// Function to display solution on back side
+function displaySolution() {
+    // Parse field data (copied from front.html)
+    const layout = document.getElementById("layout-field").innerText.trim().toUpperCase();
+
+    const headers = [
+        document.getElementById("header1-field").innerText,
+        document.getElementById("header2-field").innerText,
+        document.getElementById("header3-field").innerText,
+        document.getElementById("header4-field").innerText,
+        document.getElementById("header5-field").innerText,
+        document.getElementById("header6-field").innerText,
+        document.getElementById("header7-field").innerText
+    ];
+
+    const terms = [
+        document.getElementById("terms1-field").innerText.split("|"),
+        document.getElementById("terms2-field").innerText.split("|"),
+        document.getElementById("terms3-field").innerText.split("|"),
+        document.getElementById("terms4-field").innerText.split("|"),
+        document.getElementById("terms5-field").innerText.split("|"),
+        document.getElementById("terms6-field").innerText.split("|"),
+        document.getElementById("terms7-field").innerText.split("|")
+    ];
+
+    // Filter valid headers and terms
+    const validHeaders = headers.filter((header, index) => header.trim() !== "" && terms[index].length > 0);
+    const validTerms = terms.filter((termList, index) => headers[index].trim() !== "" && termList.length > 0);
+
+    // Generate table structure
+    const dynamicTable = document.getElementById("dynamic-table");
+    if (dynamicTable) {
+        dynamicTable.innerHTML = generateTable(layout, validHeaders);
+        
+        // Populate table with correct answers
+        validTerms.forEach((categoryTerms, index) => {
+            const dropzoneId = layout === 'V' ? `col${index + 1}-vert` : `col${index + 1}`;
+            const dropzone = document.getElementById(dropzoneId);
+            
+            if (dropzone) {
+                categoryTerms.forEach(termString => {
+                    const terms = termString.split('|').map(t => t.trim());
+                    terms.forEach(term => {
+                        if (term) {
+                            dropzone.innerHTML += `<div class="term correct">${term}<div class="question-plus-one"></div></div>`;
+                        }
+                    });
+                });
+            }
+        });
+        
+        // Hide interactive elements
+        const termsContainer = document.getElementById("terms-container");
+        if (termsContainer) termsContainer.style.display = 'none';
+        const checkButton = document.getElementById("checkButton");
+        if (checkButton) checkButton.style.display = 'none';
+    }
+}
 </script>
 {{FrontSide}}
 <script>
+// Execute solution display after DOM is ready
+setTimeout(function() {
+    displaySolution();
+}, 10);
+
 // Clear persistence after back side is shown to prevent bleeding into next card
 setTimeout(function() {
     if (window.Persistence && window.Persistence.isAvailable()) {
